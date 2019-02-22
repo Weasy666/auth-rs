@@ -1,6 +1,6 @@
 use rocket::config::{Config, Environment};
 
-const COOKIE_IDENTIFIER_CONFIG_KEY : &'static str = "simpleauth_cookie_identifier";
+const COOKIE_IDENTIFIER_CONFIG_KEY : &str = "simpleauth_cookie_identifier";
 
 fn get_config() -> Config{
     Config::build(Environment::active().unwrap())

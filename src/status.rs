@@ -32,10 +32,10 @@ pub struct LoginRedirect(Redirect);
 
 impl<A: Authenticator> LoginStatus<A> {
     /// Returns the user id from an instance of Authenticator
-    pub fn get_authenticator (&self) -> &A{
-        match self{
-            &LoginStatus::Succeed(ref authenticator) => authenticator,
-            &LoginStatus::Failed(ref authenticator) => authenticator
+    pub fn get_authenticator (&self) -> &A {
+        match self {
+            LoginStatus::Succeed(ref authenticator) => authenticator,
+            LoginStatus::Failed(ref authenticator) => authenticator
         }
     }
 
@@ -44,12 +44,12 @@ impl<A: Authenticator> LoginStatus<A> {
         let cookie_identifier = config::get_cookie_identifier();
 
         cookies.add_private(Cookie::new(cookie_identifier, self.get_authenticator().user().to_string()));
-        Redirect::to(url.into().as_str())
+        Redirect::to(url.into().to_string())
     }
 
     /// Generates a failed response
     fn failed<T: Into<String>>(self, url: T) -> Redirect {
-        Redirect::to(url.into().as_str())
+        Redirect::to(url.into().to_string())
     }
 
     /// Generate an appropriate response based on the login status that the authenticator returned
@@ -69,10 +69,11 @@ impl<'f,A: Authenticator> FromForm<'f> for LoginStatus<A>{
     fn from_form(form_items: &mut FormItems<'f>, _strict: bool) -> Result<Self, Self::Error> {
         let mut user_pass = HashMap::new();
 
-        for (key,value) in form_items{
-            match key.as_str(){
-                "username" => user_pass.insert("username", value.url_decode().unwrap()).map_or((), |_v| ()),
-                "password" => user_pass.insert("password", value.url_decode().unwrap()).map_or((), |_v| ()),
+        for form_item in form_items {
+            let (key, value) = form_item.key_value_decoded();
+            match key.as_str() {
+                "username" => user_pass.insert("username", value).map_or((), |_v| ()),
+                "password" => user_pass.insert("password", value).map_or((), |_v| ()),
                 _ => ()
             }
         }
@@ -80,9 +81,9 @@ impl<'f,A: Authenticator> FromForm<'f> for LoginStatus<A>{
         if user_pass.get("username").is_none() || user_pass.get("password").is_none() {
             Err("invalid form")
         } else {
-            let result = A::check_credentials(user_pass.get("username").unwrap().to_string(), user_pass.get("password").unwrap().to_string());
+            let result = A::check_credentials(user_pass["username"].to_string(), user_pass["password"].to_string());
 
-            Ok(match result{
+            Ok(match result {
                 Ok(authenticator) => LoginStatus::Succeed(authenticator),
                 Err(authenticator) => LoginStatus::Failed(authenticator)
             })

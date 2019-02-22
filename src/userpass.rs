@@ -47,7 +47,7 @@ impl<'a,'r, T: FromString> FromRequest<'a, 'r> for UserPass<'a, T>{
         let mut cookies = request.cookies();
 
         match cookies.get_private(&cookie_id){
-            Some(cookie) => Outcome::Success(UserPass{user: T::from_string(cookie.value().to_string()),cookies: cookies}),
+            Some(cookie) => Outcome::Success(UserPass{user: T::from_string(cookie.value().to_string()), cookies}),
             None => Outcome::Forward(())
         }
     }
