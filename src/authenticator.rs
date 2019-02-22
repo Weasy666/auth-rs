@@ -1,5 +1,5 @@
 use std;
-use super::userpass::FromString;
+use super::FromString;
 
 pub trait Authenticator{
     // the type that is returned when someone calls user() on the authenticator
@@ -18,7 +18,7 @@ pub trait Authenticator{
 
     /// a function that checks if the user pass combination is valid and if it is returns true and
     /// an instance of itself
-    fn check_credentials(username: String, password: String) -> Result<Self,Self>
+    fn try_login(username: String, password: String) -> Result<Self,Self>
         where Self: std::marker::Sized;
 }
 

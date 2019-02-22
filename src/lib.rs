@@ -1,7 +1,11 @@
 #![warn(clippy::all)]
 extern crate rocket;
 
-pub mod authenticator;
+mod authenticator;
+mod authuser;
+mod login;
 
-pub mod status;
-pub mod userpass;
+// Reexport so that everything is in the crate namespace
+pub use self::authuser::{ AuthUser, FromString };
+pub use self::authenticator::{ Authenticator };
+pub use self::login::{ Login, LoginRedirect };

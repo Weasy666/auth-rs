@@ -1,10 +1,9 @@
 use rocket::Response;
-use rocket::response::Redirect;
-use rocket::response::Responder;
-use rocket::request::{FormItems, FromForm, Request};
-use rocket::http::{Status, Cookie, Cookies};
+use rocket::response::{ Redirect, Responder };
+use rocket::request::{ FormItems, FromForm, Request };
+use rocket::http::{ Status, Cookie, Cookies };
 use std::collections::HashMap;
-use super::authenticator::Authenticator;
+use super::Authenticator;
 
 
 /// Login state is used after the user has typed its username and password. It checks with an
@@ -22,24 +21,24 @@ use super::authenticator::Authenticator;
 /// <input type="password" name="password" />
 ///</form>
 /// ```
-pub enum LoginStatus<A>{
-    Succeed(A),
-    Failed(A)
+pub enum Login<A> {
+    Success(A),
+    Failure(A)
 }
 
 pub struct LoginRedirect(Redirect);
 
-impl<A: Authenticator> LoginStatus<A> {
+impl<A: Authenticator> Login<A> {
     /// Returns the user id from an instance of Authenticator
     pub fn get_authenticator (&self) -> &A {
         match self {
-            LoginStatus::Succeed(ref authenticator) => authenticator,
-            LoginStatus::Failed(ref authenticator) => authenticator
+            Login::Success(ref authenticator) => authenticator,
+            Login::Failure(ref authenticator) => authenticator
         }
     }
 
     /// Generates a succeed response
-    fn succeed<T: Into<String>>(self, url: T, mut cookies: Cookies) -> Redirect {
+    fn success<T: Into<String>>(self, url: T, mut cookies: Cookies) -> Redirect {
         let cookie_id = super::authenticator::cookie_id();
 
         cookies.add_private(Cookie::new(cookie_id, self.get_authenticator().user().to_string()));
@@ -47,22 +46,22 @@ impl<A: Authenticator> LoginStatus<A> {
     }
 
     /// Generates a failed response
-    fn failed<T: Into<String>>(self, url: T) -> Redirect {
+    fn failure<T: Into<String>>(self, url: T) -> Redirect {
         Redirect::to(url.into().to_string())
     }
 
     /// Generate an appropriate response based on the login status that the authenticator returned
     pub fn redirect<T: Into<String>, S: Into<String>>(self, success_url: T, failure_url: S, cookies: Cookies) -> LoginRedirect {
         let redirect = match self {
-          LoginStatus::Succeed(_) => self.succeed(success_url, cookies),
-          LoginStatus::Failed(_) => self.failed(failure_url)
+          Login::Success(_) => self.success(success_url, cookies),
+          Login::Failure(_) => self.failure(failure_url)
         };
 
         LoginRedirect(redirect)
     }
 }
 
-impl<'f,A: Authenticator> FromForm<'f> for LoginStatus<A> {
+impl<'f,A: Authenticator> FromForm<'f> for Login<A> {
     type Error = &'static str;
     
     fn from_form(form_items: &mut FormItems<'f>, _strict: bool) -> Result<Self, Self::Error> {
@@ -80,11 +79,11 @@ impl<'f,A: Authenticator> FromForm<'f> for LoginStatus<A> {
         if user_pass.get("username").is_none() || user_pass.get("password").is_none() {
             Err("invalid form")
         } else {
-            let result = A::check_credentials(user_pass["username"].to_string(), user_pass["password"].to_string());
+            let result = A::try_login(user_pass["username"].to_string(), user_pass["password"].to_string());
 
             Ok(match result {
-                Ok(authenticator) => LoginStatus::Succeed(authenticator),
-                Err(authenticator) => LoginStatus::Failed(authenticator)
+                Ok(authenticator) => Login::Success(authenticator),
+                Err(authenticator) => Login::Failure(authenticator)
             })
         }
     }

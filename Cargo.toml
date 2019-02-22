@@ -1,7 +1,7 @@
 [package]
-name = "rocket-simpleauth"
+name = "rocket_auth"
 version = "0.4.0"
-authors = ["Bram Vandenbogaerde"]
+authors = ["Bram Vandenbogaerde", "Daniel Wiesenberg <weasy@hotmail.de>"]
 include = [
     "**/*.rs",
     "Cargo.toml",

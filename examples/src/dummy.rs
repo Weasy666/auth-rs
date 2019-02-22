@@ -1,4 +1,4 @@
-use auth::authenticator::Authenticator;
+use auth::Authenticator;
 
 pub struct DummyAuthenticator {}
 
@@ -16,7 +16,7 @@ impl Authenticator for DummyAuthenticator {
         "hello world".to_string()
     }   
 
-    fn check_credentials(_username: String, _password: String) -> Result<Self,Self> {
+    fn try_login(_username: String, _password: String) -> Result<Self,Self> {
         println!("username: {}, password: {}", _username, _password);
 
         Ok(DummyAuthenticator{})
