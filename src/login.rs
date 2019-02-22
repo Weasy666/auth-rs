@@ -1,5 +1,5 @@
 use rocket::Response;
-use rocket::response::{ Redirect, Responder };
+use rocket::response::{ Flash, Redirect, Responder };
 use rocket::request::{ FormItems, FromForm, Request };
 use rocket::http::{ Status, Cookie, Cookies };
 use std::collections::HashMap;
@@ -26,8 +26,6 @@ pub enum Login<A> {
     Failure(A)
 }
 
-pub struct LoginRedirect(Redirect);
-
 impl<A: Authenticator> Login<A> {
     /// Returns the user id from an instance of Authenticator
     pub fn get_authenticator (&self) -> &A {
@@ -50,14 +48,25 @@ impl<A: Authenticator> Login<A> {
         Redirect::to(url.into().to_string())
     }
 
+    /// Generates a failed response
+    fn flash_failure<T: Into<String>, S: Into<String>>(self, url: T, msg: S) -> Flash<Redirect> {
+        Flash::error(Redirect::to(url.into().to_string()), msg.into())
+    }
+
     /// Generate an appropriate response based on the login status that the authenticator returned
-    pub fn redirect<T: Into<String>, S: Into<String>>(self, success_url: T, failure_url: S, cookies: Cookies) -> LoginRedirect {
-        let redirect = match self {
+    pub fn redirect<T: Into<String>, S: Into<String>>(self, success_url: T, failure_url: S, cookies: Cookies) -> Redirect {
+        match self {
           Login::Success(_) => self.success(success_url, cookies),
           Login::Failure(_) => self.failure(failure_url)
-        };
+        }
+    }
 
-        LoginRedirect(redirect)
+    /// Generate an appropriate response based on the login status that the authenticator returned
+    pub fn flash_redirect<T: Into<String>, S: Into<String>, R: Into<String>>(self, success_url: T, failure_url: S, failure_msg: R, cookies: Cookies) -> Result<Redirect,Flash<Redirect>> {
+        match self {
+          Login::Success(_) => Ok(self.success(success_url, cookies)),
+          Login::Failure(_) => Err(self.flash_failure(failure_url, failure_msg))
+        }
     }
 }
 
@@ -86,11 +95,5 @@ impl<'f,A: Authenticator> FromForm<'f> for Login<A> {
                 Err(authenticator) => Login::Failure(authenticator)
             })
         }
-    }
-}
-
-impl<'r> Responder<'r> for LoginRedirect {
-    fn respond_to(self, request: &Request) -> Result<Response<'r>, Status> {
-        self.0.respond_to(request)
     }
 }
