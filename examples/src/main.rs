@@ -1,8 +1,9 @@
-#![feature(plugin)]
-#![plugin(rocket_codegen)]
+#![feature(proc_macro_hygiene, decl_macro)]
 
 extern crate rocket_simpleauth as auth;
-extern crate rocket;
+#[macro_use] extern crate rocket;
+
+mod dummy;
 
 use auth::userpass::UserPass;
 use rocket::request::Form;
@@ -10,7 +11,7 @@ use rocket::response::Redirect;
 use rocket::response::content::Html;
 use rocket::http::Cookies;
 use auth::status::{LoginStatus,LoginRedirect};
-use auth::dummy::DummyAuthenticator;
+use dummy::DummyAuthenticator;
 
 #[get("/admin")]
 fn admin(info: UserPass<String>) -> Html<String> {

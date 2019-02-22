@@ -1,6 +1,6 @@
-use super::authenticator::Authenticator;
+use auth::authenticator::Authenticator;
 
-pub struct DummyAuthenticator{}
+pub struct DummyAuthenticator {}
 
 /// An implementation of the authenticator
 /// which always lets the authentication succeed
@@ -9,14 +9,14 @@ pub struct DummyAuthenticator{}
 /// username and password.
 ///
 /// This type should only be used for testing purposes.
-impl Authenticator for DummyAuthenticator{
+impl Authenticator for DummyAuthenticator {
     type User = String;
 
-    fn user(&self) -> String{
+    fn user(&self) -> String {
         "hello world".to_string()
     }   
 
-    fn check_credentials(_username: String, _password: String) -> Result<Self,Self>{
+    fn check_credentials(_username: String, _password: String) -> Result<Self,Self> {
         println!("username: {}, password: {}", _username, _password);
 
         Ok(DummyAuthenticator{})

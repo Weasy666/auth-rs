@@ -1,22 +1,20 @@
-use super::config;
-
 use rocket;
 use rocket::request::FromRequest;
 use rocket::Request;
 use rocket::http::{Cookie, Cookies};
 use rocket::outcome::Outcome;
 
-pub trait FromString{
+pub trait FromString {
     fn from_string(s: String) -> Self;
 }
 
-impl FromString for String{
+impl FromString for String {
     fn from_string(s: String) -> String{
         s
     }
 }
 
-pub struct UserPass<'c, T>{
+pub struct UserPass<'c, T> {
     pub user: T,
     cookies: Cookies<'c>,
 }
@@ -24,7 +22,7 @@ pub struct UserPass<'c, T>{
 impl<'c, T> UserPass<'c, T> {
     /// Removes the cookie so the user can be logged out
     pub fn logout(&mut self) {
-        self.cookies.remove_private(Cookie::named(config::get_cookie_identifier()));
+        self.cookies.remove_private(Cookie::named(super::authenticator::cookie_id()));
     }
 
     /// Get the stored user type
@@ -39,14 +37,14 @@ impl<'c, T> UserPass<'c, T> {
 /// Rocket config file.
 ///
 /// By default it is "sid" see the config module
-impl<'a,'r, T: FromString> FromRequest<'a, 'r> for UserPass<'a, T>{
+impl<'a,'r, T: FromString> FromRequest<'a, 'r> for UserPass<'a, T> {
     type Error = ();
 
-    fn from_request(request: &'a Request<'r>) -> rocket::request::Outcome<UserPass<'a, T>,Self::Error>{
-        let cookie_id = config::get_cookie_identifier();
+    fn from_request(request: &'a Request<'r>) -> rocket::request::Outcome<UserPass<'a, T>,Self::Error> {
+        let cookie_id = super::authenticator::cookie_id();
         let mut cookies = request.cookies();
 
-        match cookies.get_private(&cookie_id){
+        match cookies.get_private(&cookie_id) {
             Some(cookie) => Outcome::Success(UserPass{user: T::from_string(cookie.value().to_string()), cookies}),
             None => Outcome::Forward(())
         }

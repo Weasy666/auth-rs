@@ -11,7 +11,7 @@ pub trait Authenticator{
     //
     // UserPass requires an implementator of this type to also implement FromString in order to
     // retreive the type back from the cookie string
-    type User : FromString + ToString;
+    type User: FromString + ToString;
 
     /// a function that returns a user_id in the form a String
     fn user(&self) -> Self::User;
@@ -20,4 +20,12 @@ pub trait Authenticator{
     /// an instance of itself
     fn check_credentials(username: String, password: String) -> Result<Self,Self>
         where Self: std::marker::Sized;
+}
+
+type CookieID = String;
+
+/// Returns the key for the cookie used to authenticate a user.
+//TODO: find better solution -> maybe config after it was refactored in Rocket, see Rocket issue #852.
+pub fn cookie_id() -> CookieID {
+    "sid".into()
 }

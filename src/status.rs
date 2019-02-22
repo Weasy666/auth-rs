@@ -1,4 +1,3 @@
-use super::config;
 use rocket::Response;
 use rocket::response::Redirect;
 use rocket::response::Responder;
@@ -41,9 +40,9 @@ impl<A: Authenticator> LoginStatus<A> {
 
     /// Generates a succeed response
     fn succeed<T: Into<String>>(self, url: T, mut cookies: Cookies) -> Redirect {
-        let cookie_identifier = config::get_cookie_identifier();
+        let cookie_id = super::authenticator::cookie_id();
 
-        cookies.add_private(Cookie::new(cookie_identifier, self.get_authenticator().user().to_string()));
+        cookies.add_private(Cookie::new(cookie_id, self.get_authenticator().user().to_string()));
         Redirect::to(url.into().to_string())
     }
 
@@ -53,7 +52,7 @@ impl<A: Authenticator> LoginStatus<A> {
     }
 
     /// Generate an appropriate response based on the login status that the authenticator returned
-    pub fn redirect<T: Into<String>, S: Into<String>>(self, success_url: T, failure_url: S, cookies: Cookies) -> LoginRedirect{
+    pub fn redirect<T: Into<String>, S: Into<String>>(self, success_url: T, failure_url: S, cookies: Cookies) -> LoginRedirect {
         let redirect = match self {
           LoginStatus::Succeed(_) => self.succeed(success_url, cookies),
           LoginStatus::Failed(_) => self.failed(failure_url)
@@ -63,7 +62,7 @@ impl<A: Authenticator> LoginStatus<A> {
     }
 }
 
-impl<'f,A: Authenticator> FromForm<'f> for LoginStatus<A>{
+impl<'f,A: Authenticator> FromForm<'f> for LoginStatus<A> {
     type Error = &'static str;
     
     fn from_form(form_items: &mut FormItems<'f>, _strict: bool) -> Result<Self, Self::Error> {
@@ -91,8 +90,8 @@ impl<'f,A: Authenticator> FromForm<'f> for LoginStatus<A>{
     }
 }
 
-impl<'r> Responder<'r> for LoginRedirect{
-    fn respond_to(self, request: &Request) -> Result<Response<'r>, Status>{
+impl<'r> Responder<'r> for LoginRedirect {
+    fn respond_to(self, request: &Request) -> Result<Response<'r>, Status> {
         self.0.respond_to(request)
     }
 }
