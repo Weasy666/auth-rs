@@ -6,16 +6,16 @@ mod dummy;
 
 use rocket::response::Flash;
 use auth::{ AuthUser, Login };
-use rocket::request::{ FlashMessage, Form };
+use rocket::request::{ FlashMessage };
 use rocket::response::Redirect;
 use rocket::response::content::Html;
 use rocket::http::Cookies;
-use dummy::DummyAuthenticator;
+use dummy::DummyUser;
 
 #[get("/admin")]
-fn admin(info: AuthUser<String>) -> Html<String> {
+fn admin(info: DummyUser) -> Html<String> {
 	// we use request guards to fall down to the login page if UserPass couldn't find a valid cookie
-	Html(format!("Restricted administration area, user logged in: {}, <a href=\"/logout\" >Logout</a> ", info.user))
+	Html(format!("Restricted administration area, user logged in: {}, <a href=\"/logout\" >Logout</a> ", info.username))
 }
 
 #[get("/admin", rank = 2)]
@@ -45,28 +45,28 @@ fn login(msg: Option<FlashMessage>) -> Html<String> {
 }
 
 #[get("/logout",)]
-fn logout(mut info: AuthUser<String>) -> Redirect {
-    info.logout();
+fn logout(info: DummyUser, mut cookies: Cookies) -> Redirect {
+    info.logout(&mut cookies);
     Redirect::to("/admin")
 }
 
-#[post("/admin", data = "<form>")]
-fn login_post(form: Form<Login<DummyAuthenticator>>, cookies: Cookies) -> Redirect {
+#[post("/admin", data = "<login>")]
+fn login_post(login: Login<DummyUser>, cookies: Cookies) -> Redirect {
 	// creates a response with either a cookie set (in case of a succesfull login)
 	// or not (in case of a failure). In both cases a "Location" header is send.
 	// the first parameter indicates the redirect URL when successful login,
 	// the second a URL for a failed login.
-	form.into_inner().redirect("/admin", "/admin", cookies)
+	login.redirect("/admin", "/admin", cookies)
 }
 
-#[post("/admin_flash", data = "<form>")]
-fn login_post_flash(form: Form<Login<DummyAuthenticator>>, cookies: Cookies) -> Result<Redirect, Flash<Redirect>> {
+#[post("/admin_flash", data = "<login>")]
+fn login_post_flash(login: Login<DummyUser>, cookies: Cookies) -> Result<Redirect, Flash<Redirect>> {
 	// creates a response with either a cookie set (in case of a succesfull login)
 	// or not (in case of a failure). In both cases a "Location" header is send.
 	// the first parameter indicates the redirect URL when successful login,
 	// the second a URL for a failed login and the message is what gets send as
     // a Flash message cookie to the client.
-	form.into_inner().flash_redirect("/admin", "/admin", "Wrong password", cookies)
+	login.flash_redirect("/admin", "/admin", "Wrong password", cookies)
 }
 
 fn main() {
