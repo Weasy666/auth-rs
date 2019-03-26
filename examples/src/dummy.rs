@@ -1,10 +1,10 @@
-use rocket::http::{Cookie, Cookies};
-use rocket_auth::Login;
-use rocket::request::FormItems;
-use rocket::request::Request;
-use rocket::request::FromRequest;
-use rocket::outcome::Outcome;
 use auth::Authenticator;
+use rocket::http::{Cookie, Cookies};
+use rocket::outcome::Outcome;
+use rocket::request::FormItems;
+use rocket::request::FromRequest;
+use rocket::request::Request;
+use rocket_auth::Login;
 
 pub struct DummyUser {
     pub username: String,
@@ -12,7 +12,7 @@ pub struct DummyUser {
 
 impl DummyUser {
     pub fn logout(&self, cookies: &mut Cookies) {
-        // also log the user out in the DB
+        // Normally her would be some code to also log the user out in the DB
         cookies.remove_private(Cookie::named(auth::cookie_auth_key()));
     }
 }
@@ -30,20 +30,24 @@ impl Authenticator for DummyUser {
 
     fn session_id(&self) -> String {
         "hello world".to_string()
-    }   
+    }
 
-    fn try_login(_request: &Request, items: &mut FormItems, _strict: bool) -> Result<Login<Self>, Self::Error> {
+    fn try_login(
+        _request: &Request,
+        items: &mut FormItems,
+        _strict: bool,
+    ) -> Result<Login<Self>, Self::Error> {
         // Get the values we need form the previously extracted FormItems
-        let (mut username, mut password) = ("".into(),"".into());
+        let (mut username, mut password) = ("".into(), "".into());
         for form_item in items {
             let (key, value) = form_item.key_value_decoded();
             match key.as_str() {
                 "username" => username = value,
                 "password" => password = value,
-                _ => ()
+                _ => (),
             }
         }
-        
+
         // Check that we got some usable values
         if username.is_empty() || password.is_empty() {
             return Err("Invalid login form with missing fiel 'username' or 'password'.".into());
@@ -55,8 +59,8 @@ impl Authenticator for DummyUser {
         let authenticated = true;
 
         match authenticated {
-            true  => Ok(Login::Success(DummyUser{username})),
-            false => Ok(Login::Failure(DummyUser{username}))
+            true => Ok(Login::Success(DummyUser { username })),
+            false => Ok(Login::Failure(DummyUser { username })),
         }
     }
 }
@@ -67,7 +71,7 @@ impl Authenticator for DummyUser {
 /// Rocket config file.
 ///
 /// By default it is "sid" see the config module
-impl<'a,'r> FromRequest<'a, 'r> for DummyUser {
+impl<'a, 'r> FromRequest<'a, 'r> for DummyUser {
     type Error = ();
 
     fn from_request(request: &'a Request<'r>) -> rocket::request::Outcome<DummyUser, Self::Error> {
@@ -77,9 +81,11 @@ impl<'a,'r> FromRequest<'a, 'r> for DummyUser {
             Some(_sid) => {
                 // Retrieve DB connection from request, check if sessionID is valid and get user data from DB
                 let db_retrieved_username = "Isaac".into();
-                Outcome::Success(DummyUser{username: db_retrieved_username})
-            },
-            None => Outcome::Forward(())
+                Outcome::Success(DummyUser {
+                    username: db_retrieved_username,
+                })
+            }
+            None => Outcome::Forward(()),
         }
     }
 }

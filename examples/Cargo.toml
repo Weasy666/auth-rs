@@ -1,10 +1,10 @@
 [package]
 name = "dummy_auth"
 version = "0.1.0"
-authors = ["Bram Vandenbogaerde <bram.vandenbogaerde@gmail.com>"]
+authors = ["Daniel Wiesenberg <weasy@hotmail.de>","Bram Vandenbogaerde <bram.vandenbogaerde@gmail.com>"]
 publish = false
 
 [dependencies]
 rocket = "0.4.0"
-rocket-simpleauth = {path = "../"}
+rocket_auth = {path = "../"}
 rocket_codegen = "0.4.0"

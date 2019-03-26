@@ -1,45 +1,27 @@
-Auth-rs
-=============
+# rocket_auth
+This library provides a simple authentication system to use with [Rocket][], its purpose is to get integrated to [Rocket Contrib][Rocket] as the canonical way to do authentication. The current implementation is what I was able to come up with after taking some inspiration of Bram Vandenbogaerde's [rocket-simpleauth](https://github.com/bramvdbogaerde/auth-rs) crate and also leveraging it as a starting point.  
 
-[![](https://img.shields.io/badge/crates.io-v0.4.0-red.svg)](https://crates.io/crates/rocket-simpleauth)
+## Checklist
+So what is left to do and what was already done?
 
-This library provides a simple username/password authentication system to use with Rocket.
+1. make it easy to use ✔
+2. make it also flexible/extendible enough ✔ (for me it is, but the topic may still need some discussion)
+3. get the "Approved by Sergio"-stamp
 
-For Cookie encryption, the library uses the Private Cookie feature of Rocket. For maintaining cookie validity after a restart,
-do not forget to set the `secret_key` configuration parameter, otherwise Rocket will generate a new key at every execution.
+I think 1. and 2. are already ok as is. I am not sure about 3., as Sergio told the community in Issue [#8](https://github.com/SergioBenitez/Rocket/issues/8) that he will be quite picky...so lets see what will happen 😄.
 
-Cargo.toml
+## How to use
+First, you know the drill, add the following lines to your `Cargo.toml`.
 ```toml
 [dependencies]
-rocket = "0.3.0"
-rocket-simpleauth = "0.4.0"
-rocket_codegen = "0.3.0"
+rocket = "0.4.0"
+rocket_codegen = "0.4.0"
+rocket_auth = "0.4.0"
 ```
+Okay...actually that doesn't work, because i didn't publish this to crate.io. So if you want to use this, clone or download it and add it as a module to your existing project or after downloading, add it in your `Cargo.toml` as local crate with a relative path from your project to this project like `rocket_auth = {path = "../rocket_auth/"}`.
+Then add `extern crate rocket_auth` to your `main.rs` file and begin hacking.
 
-## Example
+## Examples
+You can find a basic example in the `examples/` directory.
 
-Please check [example/](example/) directory, for a full example. 
-
-## API Stability
-
-Apart from a few functions of some traits, the API should stay the same from now on (v0.4.0).
-Given issue #6 it is probabel that the `Authenticator` trait will change.
-
-When this crate reaches 1.0.0, the full API will be considered stable and frozen.
-
-## Todo
-
-The following items are in development or are planned to be developped:
-
-* [ ] standard implementation for user storage into sqlite databases
-* [x] publishing to crates.io
-* [ ] Documentation
-
-### On hold
-
-See [this issue](https://github.com/bramvdbogaerde/auth-rs/issues/4)
-
-* [ ] cookie storage in Redis datastore
-* [ ] stateless cookie validation using JSON Web Tokens
-
-
+[Rocket]: https://github.com/SergioBenitez/Rocket

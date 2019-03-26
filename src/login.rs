@@ -1,26 +1,25 @@
-use std::ops::Deref;
-use rocket::response::{ Flash, Redirect, };
-use rocket::request::{ FormItems, Request };
-use rocket::http::{ Status, Cookie, Cookies };
 use super::Authenticator;
+use rocket::data::{Data, FromData, Outcome, Transform, Transformed};
+use rocket::http::uri::{FromUriParam, Query};
+use rocket::http::{Cookie, Cookies, Status};
 use rocket::outcome::Outcome::*;
-use rocket::request::{FormDataError};
-use rocket::data::{Outcome, Transform, Transformed, Data, FromData};
-use rocket::http::{uri::{Query, FromUriParam}};
+use rocket::request::FormDataError;
+use rocket::request::{FormItems, Request};
+use rocket::response::{Flash, Redirect};
+use std::ops::Deref;
 
 pub enum Login<A> {
     Success(A),
-    Failure(A)
+    Failure(A),
 }
 
 impl<A: Authenticator> Deref for Login<A> {
     type Target = A;
 
     fn deref(&self) -> &A {
-        //&self.0
         match self {
-          Login::Success(ref a) => a,
-          Login::Failure(ref a) => a
+            Login::Success(ref a) => a,
+            Login::Failure(ref a) => a,
         }
     }
 }
@@ -29,8 +28,8 @@ impl<'f, A: Authenticator> Login<A> {
     #[inline(always)]
     pub fn into_inner(self) -> A {
         match self {
-          Login::Success(a) => a,
-          Login::Failure(a) => a
+            Login::Success(a) => a,
+            Login::Failure(a) => a,
         }
     }
 
@@ -39,7 +38,10 @@ impl<'f, A: Authenticator> Login<A> {
         //TODO: use RocketConfig when this gets integrated into Rocket
         let cookie_id = super::authenticator::cookie_auth_key();
 
-        cookies.add_private(Cookie::new(cookie_id, self.deref().session_id().to_string()));
+        cookies.add_private(Cookie::new(
+            cookie_id,
+            self.deref().session_id().to_string(),
+        ));
         Redirect::to(url.into())
     }
 
@@ -54,22 +56,37 @@ impl<'f, A: Authenticator> Login<A> {
     }
 
     /// Generate an appropriate response based on the login status that the authenticator returned
-    pub fn redirect<T: Into<String>, S: Into<String>>(self, success_url: T, failure_url: S, cookies: Cookies) -> Redirect {
+    pub fn redirect<T: Into<String>, S: Into<String>>(
+        self,
+        success_url: T,
+        failure_url: S,
+        cookies: Cookies,
+    ) -> Redirect {
         match self {
-          Login::Success(_) => self.success(success_url, cookies),
-          Login::Failure(_) => self.failure(failure_url)
+            Login::Success(_) => self.success(success_url, cookies),
+            Login::Failure(_) => self.failure(failure_url),
         }
     }
 
     /// Generate an appropriate response based on the login status that the authenticator returned
-    pub fn flash_redirect<T: Into<String>, S: Into<String>, R: Into<String>>(self, success_url: T, failure_url: S, failure_msg: R, cookies: Cookies) -> Result<Redirect,Flash<Redirect>> {
+    pub fn flash_redirect<T: Into<String>, S: Into<String>, R: Into<String>>(
+        self,
+        success_url: T,
+        failure_url: S,
+        failure_msg: R,
+        cookies: Cookies,
+    ) -> Result<Redirect, Flash<Redirect>> {
         match self {
-          Login::Success(_) => Ok(self.success(success_url, cookies)),
-          Login::Failure(_) => Err(self.flash_failure(failure_url, failure_msg))
+            Login::Success(_) => Ok(self.success(success_url, cookies)),
+            Login::Failure(_) => Err(self.flash_failure(failure_url, failure_msg)),
         }
     }
 
-    crate fn from_login_form(request: &Request<'_>, form_str: &'f str, strict: bool) -> Outcome<Login<A>, FormDataError<'f, A::Error>> {
+    crate fn from_login_form(
+        request: &Request<'_>,
+        form_str: &'f str,
+        strict: bool,
+    ) -> Outcome<Login<A>, FormDataError<'f, A::Error>> {
         use self::FormDataError::*;
 
         let mut items = FormItems::from(form_str);
@@ -95,10 +112,7 @@ impl<'f, A: Authenticator> FromData<'f> for Login<A> {
     type Owned = String;
     type Borrowed = str;
 
-    fn transform(
-        request: &Request,
-        data: Data
-    ) -> Transform<Outcome<Self::Owned, Self::Error>> {
+    fn transform(request: &Request, data: Data) -> Transform<Outcome<Self::Owned, Self::Error>> {
         use std::{cmp::min, io::Read};
 
         let outcome = 'o: {
@@ -107,7 +121,7 @@ impl<'f, A: Authenticator> FromData<'f> for Login<A> {
                 break 'o Forward(data);
             }
             //TODO: uncomment when this gets integrated into Rocket
-            let limit = 4096;//request.limits().forms;
+            let limit = 4096; //request.limits().forms;
             let mut stream = data.open().take(limit);
             let mut form_string = String::with_capacity(min(4096, limit) as usize);
             if let Err(e) = stream.read_to_string(&mut form_string) {
@@ -127,7 +141,7 @@ impl<'f, A: Authenticator> FromData<'f> for Login<A> {
 
 impl<'f, A, T: FromUriParam<Query, A>> FromUriParam<Query, A> for Login<T> {
     type Target = T::Target;
- 
+
     #[inline(always)]
     fn from_uri_param(param: A) -> Self::Target {
         T::from_uri_param(param)
