@@ -16,9 +16,9 @@ First, you know the drill, add the following lines to your `Cargo.toml`.
 [dependencies]
 rocket = "0.4.0"
 rocket_codegen = "0.4.0"
-rocket_auth = "0.4.0"
+rocket_auth = { git="https://github.com/Weasy666/rocket_auth" }
 ```
-Okay...actually that doesn't work, because i didn't publish this to crate.io. So if you want to use this, clone or download it and add it as a module to your existing project or after downloading, add it in your `Cargo.toml` as local crate with a relative path from your project to this project like `rocket_auth = {path = "../rocket_auth/"}`.
+Another option is to download it and add it as a module to your existing project or download it and add it in your `Cargo.toml` as local crate with a relative path from your project to this project like `rocket_auth = {path = "../rocket_auth/"}`.
 Then add `extern crate rocket_auth` to your `main.rs` file and begin hacking.
 
 ## Examples
