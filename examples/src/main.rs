@@ -60,25 +60,22 @@ fn logout(info: DummyUser, mut cookies: Cookies) -> Redirect {
 }
 
 #[post("/admin", data = "<login>")]
-fn login_post(login: Login<DummyUser>, cookies: Cookies) -> Redirect {
+fn login_post(login: Login<DummyUser>) -> Redirect {
     // creates a response with either a cookie set (in case of a succesfull login)
     // or not (in case of a failure). In both cases a "Location" header is send.
     // the first parameter indicates the redirect URL when successful login,
     // the second a URL for a failed login. Cookies is needed to set the session_id.
-    login.redirect("/admin", "/admin", cookies)
+    login.redirect("/admin", "/admin")
 }
 
 #[post("/admin_flash", data = "<login>")]
-fn login_post_flash(
-    login: Login<DummyUser>,
-    cookies: Cookies,
-) -> Result<Redirect, Flash<Redirect>> {
+fn login_post_flash(login: Login<DummyUser>) -> Result<Redirect, Flash<Redirect>> {
     // creates a response with either a cookie set (in case of a succesfull login)
     // or not (in case of a failure). In both cases a "Location" header is send.
     // the first parameter indicates the redirect URL when successful login,
     // the second a URL for a failed login and the message is what gets send as
     // a Flash message cookie to the client. Cookies is also needed to set the session_id.
-    login.flash_redirect("/admin", "/admin", "Wrong password", cookies)
+    login.flash_redirect("/admin", "/admin", "Wrong password")
 }
 
 fn main() {

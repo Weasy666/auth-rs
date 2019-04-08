@@ -26,13 +26,19 @@ use std::ops::Deref;
 /// }
 /// impl Authenticator for User {
 ///     type Error = String;
+///     type SessionKey = String;
 ///     type SessionToken = String;
+/// 
+///     fn session_key() -> Self::SessionKey {
+///         "sid".into()
+///     }
 /// 
 ///     fn session_token(&self) -> Self::SessionToken {
 ///         crypto::generate_session_token()
 ///     }
 /// 
 ///     fn authenticate(
+///         &self,
 ///         request: &Request,
 ///         items: &mut FormItems,
 ///         _strict: bool,
@@ -102,12 +108,8 @@ impl<'f, A: Authenticator> Login<A> {
         }
     }
 
-    /// Sets the session token in a private cookie and generates a success response.
-    fn success<T: Into<String>>(&self, url: T, mut cookies: Cookies) -> Redirect {
-        cookies.add_private(Cookie::new(
-            A::session_key().to_string(),
-            self.deref().session_token().to_string(),
-        ));
+    /// Generates a success response.
+    fn success<T: Into<String>>(&self, url: T) -> Redirect {
         Redirect::to(url.into())
     }
 
@@ -126,10 +128,9 @@ impl<'f, A: Authenticator> Login<A> {
         &self,
         success_url: T,
         failure_url: S,
-        cookies: Cookies,
     ) -> Redirect {
         match self {
-            Login::Success(_) => self.success(success_url, cookies),
+            Login::Success(_) => self.success(success_url),
             Login::Failure(_) => self.failure(failure_url),
         }
     }
@@ -141,10 +142,9 @@ impl<'f, A: Authenticator> Login<A> {
         success_url: T,
         failure_url: S,
         failure_msg: R,
-        cookies: Cookies,
     ) -> Result<Redirect, Flash<Redirect>> {
         match self {
-            Login::Success(_) => Ok(self.success(success_url, cookies)),
+            Login::Success(_) => Ok(self.success(success_url)),
             Login::Failure(_) => Err(self.flash_failure(failure_url, failure_msg)),
         }
     }
