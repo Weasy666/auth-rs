@@ -13,35 +13,29 @@ impl FromString for String {
     }
 }
 
+/// This trait needs to be implemented by the type which will be used in [`Login`]
+/// 
+/// [`Login`]: crate::login::Login
 pub trait Authenticator {
     type Error;
-    // The type that is returned when someone calls user() on the authenticator
-    // this can for example be a structure that represent the user that is logged in.
-    //
-    // LoginStatus requires an implementator of this type to also implement ToString
+    type SessionKey: FromString + ToString;
+    // Session requires an implementator of this type to also implement ToString
     // this because the type must be serializable into a string in order to store it inside a
     // cookie.
-    //
-    // UserPass requires an implementator of this type to also implement FromString in order to
-    // retreive the type back from the cookie string
-    type Session: FromString + ToString;
+    type SessionToken: FromString + ToString;
 
-    /// a function that returns a UserToken in the form of a String, which identifies a user from a cookie.
-    fn session_id(&self) -> Self::Session;
+    /// A function that returns the key with which the session token will be saved in the private cookie.
+    fn session_key() -> Self::SessionKey;
 
-    fn try_login(
+    /// A function that returns a valid session token in the form of a String, which will
+    /// be stored in a private cookie to identify a logged in user.
+    fn session_token(&self) -> Self::SessionToken;
+
+    fn authenticate(
         request: &Request,
         items: &mut FormItems,
         strict: bool,
     ) -> Result<Login<Self>, Self::Error>
     where
         Self: std::marker::Sized;
-}
-
-type CookieID = String;
-
-/// Returns the key for the cookie used to authenticate a user.
-//TODO: find better solution -> maybe config after it was refactored in Rocket, see Rocket issue #852, or add it to current config when this project gets integrated in Rocket
-pub fn cookie_auth_key() -> CookieID {
-    "sid".into()
 }

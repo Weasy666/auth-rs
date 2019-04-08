@@ -8,6 +8,75 @@ use rocket::request::{FormItems, Request};
 use rocket::response::{Flash, Redirect};
 use std::ops::Deref;
 
+/// This enum is used for authentication with a login form.
+///
+/// You just need to use it in a handler instead of Rockets [`Form`] type.
+/// And use a type that implements [`Authenticator`] trait for its inner type.
+/// 
+/// # Example
+///
+/// ```rust
+/// # #![feature(proc_macro_hygiene, decl_macro)]
+/// # #[macro_use] extern crate rocket;
+/// use rocket_auth::{Authenticator, Login};
+///
+/// pub struct User {
+///     pub username: String,
+///     password: String,
+/// }
+/// impl Authenticator for User {
+///     type Error = String;
+///     type SessionToken = String;
+/// 
+///     fn session_token(&self) -> Self::SessionToken {
+///         crypto::generate_session_token()
+///     }
+/// 
+///     fn authenticate(
+///         request: &Request,
+///         items: &mut FormItems,
+///         _strict: bool,
+///     ) -> Result<Login<Self>, Self::Error> {
+///         // Get the values we need from the previously extracted FormItems
+///         let (mut username, mut password, mut remember) = ("".into(), "".into(), false);
+///         for form_item in items {
+///             let (key, value) = form_item.key_value_decoded();
+///             match key.as_str() {
+///                 "username" | "email" => username = value,
+///                 "password" => password = value,
+///                 "remember" => remember = value == "on",
+///                 _ => (),
+///             }
+///         }
+/// 
+///         // Check that we got some usable values
+///         if username.is_empty() || password.is_empty() {
+///             return Err("Invalid login form with missing field 'username' or 'password'.".into());
+///         }
+/// 
+///         // Retrieve DB connection from request and authenticate user
+///         let conn = request.guard::<DbConn>().unwrap();
+///         let user = User::by_name_or_email(&conn, &username).map_err(|e| format!("User not found: {}", e))?;
+///         let authenticated = crypto::password_verify(&user.salt, &user.password, &password);
+/// 
+///         if authenticated {
+///             Ok(Login::Success(user))
+///         } else {
+///             Ok(Login::Failure(user))
+///         }
+///     }
+/// }
+/// 
+/// #[post("/login", data = "<login>")]
+/// fn login_post(login: Login<User>, cookies: Cookies) -> Redirect {
+///     login.redirect("/", "/login", cookies)
+/// }
+/// 
+/// fn main() { /* the regular Rocket init stuff... */ }
+/// ```
+/// 
+/// [`Form`]: rocket::request::Form
+/// [`Authenticator`]: authenticator::Authenticator
 pub enum Login<A> {
     Success(A),
     Failure(A),
@@ -33,31 +102,28 @@ impl<'f, A: Authenticator> Login<A> {
         }
     }
 
-    /// Generates a succeed response
-    fn success<T: Into<String>>(self, url: T, mut cookies: Cookies) -> Redirect {
-        //TODO: use RocketConfig when this gets integrated into Rocket
-        let cookie_id = super::authenticator::cookie_auth_key();
-
+    /// Sets the session token in a private cookie and generates a success response.
+    fn success<T: Into<String>>(&self, url: T, mut cookies: Cookies) -> Redirect {
         cookies.add_private(Cookie::new(
-            cookie_id,
-            self.deref().session_id().to_string(),
+            A::session_key().to_string(),
+            self.deref().session_token().to_string(),
         ));
         Redirect::to(url.into())
     }
 
-    /// Generates a failed response
-    fn failure<T: Into<String>>(self, url: T) -> Redirect {
+    /// Generates a failure response.
+    fn failure<T: Into<String>>(&self, url: T) -> Redirect {
         Redirect::to(url.into())
     }
 
-    /// Generates a failed response
-    fn flash_failure<T: Into<String>, S: Into<String>>(self, url: T, msg: S) -> Flash<Redirect> {
+    /// Generates a failure response with a "error" `Flash` message from the given `msg`.
+    fn flash_failure<T: Into<String>, S: Into<String>>(&self, url: T, msg: S) -> Flash<Redirect> {
         Flash::error(Redirect::to(url.into()), msg.into())
     }
 
-    /// Generate an appropriate response based on the login status that the authenticator returned
+    /// Generates an appropriate response based on the login status that the authenticator returned.
     pub fn redirect<T: Into<String>, S: Into<String>>(
-        self,
+        &self,
         success_url: T,
         failure_url: S,
         cookies: Cookies,
@@ -68,9 +134,10 @@ impl<'f, A: Authenticator> Login<A> {
         }
     }
 
-    /// Generate an appropriate response based on the login status that the authenticator returned
+    /// Generates an appropriate response based on the login status that the authenticator returned.
+    /// In the case of an error an "error" `Flash` response is generated from the given `msg`.
     pub fn flash_redirect<T: Into<String>, S: Into<String>, R: Into<String>>(
-        self,
+        &self,
         success_url: T,
         failure_url: S,
         failure_msg: R,
@@ -91,7 +158,7 @@ impl<'f, A: Authenticator> Login<A> {
 
         let mut items = FormItems::from(form_str);
 
-        let result = A::try_login(request, &mut items, strict);
+        let result = A::authenticate(request, &mut items, strict);
         if !items.exhaust() {
             error_!("The request's form string was malformed.");
             return Failure((Status::BadRequest, Malformed(form_str)));
@@ -120,8 +187,8 @@ impl<'f, A: Authenticator> FromData<'f> for Login<A> {
                 warn_!("Form data does not have form content type.");
                 break 'o Forward(data);
             }
-            //TODO: uncomment when this gets integrated into Rocket
-            let limit = 4096; //request.limits().forms;
+
+            let limit = request.limits().get("forms").unwrap_or(4096);
             let mut stream = data.open().take(limit);
             let mut form_string = String::with_capacity(min(4096, limit) as usize);
             if let Err(e) = stream.read_to_string(&mut form_string) {

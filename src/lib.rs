@@ -12,5 +12,5 @@ mod authenticator;
 mod login;
 
 // Reexport so that everything is in the crate namespace
-pub use self::authenticator::{cookie_auth_key, Authenticator, FromString};
+pub use self::authenticator::{Authenticator, FromString};
 pub use self::login::Login;

@@ -13,26 +13,29 @@ pub struct DummyUser {
 impl DummyUser {
     pub fn logout(&self, cookies: &mut Cookies) {
         // Normally her would be some code to also log the user out in the DB
-        cookies.remove_private(Cookie::named(auth::cookie_auth_key()));
+        cookies.remove_private(Cookie::named(Self::session_key()));
     }
 }
 
-/// An implementation of the authenticator
-/// which always lets the authentication succeed
+/// An implementation of the authenticator which always lets the authentication succeed
 ///
-/// On every invocation this will also print the incoming
-/// username and password.
+/// On every invocation this will also print the incoming username and password.
 ///
 /// This type should only be used for testing purposes.
 impl Authenticator for DummyUser {
     type Error = String;
-    type Session = String;
+    type SessionKey = String;
+    type SessionToken = String;
 
-    fn session_id(&self) -> String {
-        "hello world".to_string()
+    fn session_key() -> Self::SessionKey {
+        "sid".into()
     }
 
-    fn try_login(
+    fn session_token(&self) -> Self::SessionToken {
+        "12a34b56c".into()
+    }
+
+    fn authenticate(
         _request: &Request,
         items: &mut FormItems,
         _strict: bool,
@@ -53,14 +56,16 @@ impl Authenticator for DummyUser {
             return Err("Invalid login form with missing fiel 'username' or 'password'.".into());
         }
 
-        println!("Authenticating user: {}", username);
+        let user = DummyUser { username };
+        println!("Authenticating user: {}", user.username);
 
         // Retrieve DB connection from request and do some authentication
         let authenticated = true;
 
-        match authenticated {
-            true => Ok(Login::Success(DummyUser { username })),
-            false => Ok(Login::Failure(DummyUser { username })),
+        if authenticated {
+            Ok(Login::Success(user))
+        } else {
+            Ok(Login::Failure(user))
         }
     }
 }
@@ -75,9 +80,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for DummyUser {
     type Error = ();
 
     fn from_request(request: &'a Request<'r>) -> rocket::request::Outcome<DummyUser, Self::Error> {
-        let key = auth::cookie_auth_key();
-
-        match request.cookies().get_private(&key) {
+        match request.cookies().get_private(&Self::session_key()) {
             Some(_sid) => {
                 // Retrieve DB connection from request, check if sessionID is valid and get user data from DB
                 let db_retrieved_username = "Isaac".into();

@@ -1,4 +1,6 @@
 #![feature(proc_macro_hygiene, decl_macro)]
+#![feature(associated_type_defaults)]
+#![warn(clippy::all)]
 #[macro_use]
 extern crate rocket;
 extern crate rocket_auth as auth;
