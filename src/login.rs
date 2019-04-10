@@ -1,12 +1,12 @@
+use std::convert::TryInto;
+use std::ops::Deref;
 use super::Authenticator;
 use rocket::data::{Data, FromData, Outcome, Transform, Transformed};
-use rocket::http::uri::{FromUriParam, Query};
-use rocket::http::{Cookie, Cookies, Status};
-use rocket::outcome::Outcome::*;
-use rocket::request::FormDataError;
-use rocket::request::{FormItems, Request};
+use rocket::http::Status;
+use rocket::http::uri::{FromUriParam, Query, Uri};
+use rocket::Outcome::{Failure, Forward, Success};
+use rocket::request::{FormDataError, FormItems, Request};
 use rocket::response::{Flash, Redirect};
-use std::ops::Deref;
 
 /// This enum is used for authentication with a login form.
 ///
@@ -26,24 +26,17 @@ use std::ops::Deref;
 /// }
 /// impl Authenticator for User {
 ///     type Error = String;
-///     type SessionKey = String;
-///     type SessionToken = String;
 /// 
-///     fn session_key() -> Self::SessionKey {
+///     fn get_cookie_key() -> String {
 ///         "sid".into()
 ///     }
 /// 
-///     fn session_token(&self) -> Self::SessionToken {
-///         crypto::generate_session_token()
-///     }
-/// 
 ///     fn authenticate(
-///         &self,
 ///         request: &Request,
 ///         items: &mut FormItems,
 ///         _strict: bool,
 ///     ) -> Result<Login<Self>, Self::Error> {
-///         // Get the values we need from the previously extracted FormItems
+///         // Get the values we need form the previously extracted FormItems
 ///         let (mut username, mut password, mut remember) = ("".into(), "".into(), false);
 ///         for form_item in items {
 ///             let (key, value) = form_item.key_value_decoded();
@@ -57,13 +50,25 @@ use std::ops::Deref;
 /// 
 ///         // Check that we got some usable values
 ///         if username.is_empty() || password.is_empty() {
-///             return Err("Invalid login form with missing field 'username' or 'password'.".into());
+///             return Err("Invalid login form with missing fiel 'username' or 'password'.".into());
 ///         }
 /// 
-///         // Retrieve DB connection from request and authenticate user
-///         let conn = request.guard::<DbConn>().unwrap();
-///         let user = User::by_name_or_email(&conn, &username).map_err(|e| format!("User not found: {}", e))?;
-///         let authenticated = crypto::password_verify(&user.salt, &user.password, &password);
+///         let user = DummyUser { username };
+///         println!("Authenticating user: {}", user.username);
+/// 
+///         // Retrieve DB connection from request and do some authentication
+///         let authenticated = true;
+/// 
+///         if remember {
+///             if let Some(mut cookies) = request.guard::<Cookies>().succeeded() {
+///                 let session = DummySession::new();
+///                 // Add session into DB
+///                 cookies.add_private(Cookie::new(
+///                     Self::get_cookie_key(),
+///                     session.token,
+///                 ));
+///             }
+///         }
 /// 
 ///         if authenticated {
 ///             Ok(Login::Success(user))
@@ -74,8 +79,8 @@ use std::ops::Deref;
 /// }
 /// 
 /// #[post("/login", data = "<login>")]
-/// fn login_post(login: Login<User>, cookies: Cookies) -> Redirect {
-///     login.redirect("/", "/login", cookies)
+/// fn login_post(login: Login<User>) -> Redirect {
+///     login.redirect("/", "/login")
 /// }
 /// 
 /// fn main() { /* the regular Rocket init stuff... */ }
@@ -110,22 +115,22 @@ impl<'f, A: Authenticator> Login<A> {
     }
 
     /// Generates a success response.
-    fn success<T: Into<String>>(&self, url: T) -> Redirect {
-        Redirect::to(url.into())
+    fn success<T: TryInto<Uri<'static>>>(&self, url: T) -> Redirect {
+        Redirect::to(url)
     }
 
     /// Generates a failure response.
-    fn failure<T: Into<String>>(&self, url: T) -> Redirect {
-        Redirect::to(url.into())
+    fn failure<T: TryInto<Uri<'static>>>(&self, url: T) -> Redirect {
+        Redirect::to(url)
     }
 
     /// Generates a failure response with a "error" `Flash` message from the given `msg`.
-    fn flash_failure<T: Into<String>, S: Into<String>>(&self, url: T, msg: S) -> Flash<Redirect> {
-        Flash::error(Redirect::to(url.into()), msg.into())
+    fn flash_failure<T: TryInto<Uri<'static>>, S: Into<String>>(&self, url: T, msg: S) -> Flash<Redirect> {
+        Flash::error(Redirect::to(url), msg.into())
     }
 
     /// Generates an appropriate response based on the login status that the authenticator returned.
-    pub fn redirect<T: Into<String>, S: Into<String>>(
+    pub fn redirect<T: TryInto<Uri<'static>>, S: TryInto<Uri<'static>>>(
         &self,
         success_url: T,
         failure_url: S,
@@ -138,7 +143,7 @@ impl<'f, A: Authenticator> Login<A> {
 
     /// Generates an appropriate response based on the login status that the authenticator returned.
     /// In the case of an error an "error" `Flash` response is generated from the given `msg`.
-    pub fn flash_redirect<T: Into<String>, S: Into<String>, R: Into<String>>(
+    pub fn flash_redirect<T: TryInto<Uri<'static>>, S: TryInto<Uri<'static>>, R: Into<String>>(
         &self,
         success_url: T,
         failure_url: S,

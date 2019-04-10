@@ -9,7 +9,6 @@ mod dummy;
 
 use auth::{Login, Logout};
 use dummy::DummyUser;
-use rocket::http::Cookies;
 use rocket::request::FlashMessage;
 use rocket::response::content::Html;
 use rocket::response::Flash;
