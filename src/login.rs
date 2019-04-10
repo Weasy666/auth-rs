@@ -83,6 +83,7 @@ use std::ops::Deref;
 /// 
 /// [`Form`]: rocket::request::Form
 /// [`Authenticator`]: authenticator::Authenticator
+#[derive(Debug)]
 pub enum Login<A> {
     Success(A),
     Failure(A),

@@ -10,7 +10,9 @@ extern crate log;
 
 mod authenticator;
 mod login;
+mod logout;
 
 // Reexport so that everything is in the crate namespace
 pub use self::authenticator::{Authenticator, FromString};
 pub use self::login::Login;
+pub use self::logout::Logout;

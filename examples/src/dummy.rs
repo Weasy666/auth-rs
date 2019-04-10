@@ -4,7 +4,7 @@ use rocket::outcome::Outcome;
 use rocket::request::FormItems;
 use rocket::request::FromRequest;
 use rocket::request::Request;
-use rocket_auth::Login;
+use rocket_auth::{Login, Logout};
 
 pub struct DummySession {
     pub token: String,
@@ -29,17 +29,6 @@ pub struct DummyUser {
     pub username: String,
 }
 
-impl DummyUser {
-    pub fn logout(&self, cookies: &mut Cookies) {
-        // Normally her would be some code to also log the user out in the DB
-        cookies.remove_private(Cookie::named(Self::session_key()));
-    }
-
-    fn session_key() -> String {
-        "sid".into()
-    }
-}
-
 /// An implementation of the authenticator which always lets the authentication succeed
 ///
 /// On every invocation this will also print the incoming username and password.
@@ -47,6 +36,10 @@ impl DummyUser {
 /// This type should only be used for testing purposes.
 impl Authenticator for DummyUser {
     type Error = String;
+
+    fn get_cookie_key() -> String {
+        "sid".into()
+    }
 
     fn authenticate(
         request: &Request,
@@ -81,7 +74,7 @@ impl Authenticator for DummyUser {
                 let session = DummySession::new();
                 // Add session into DB
                 cookies.add_private(Cookie::new(
-                    Self::session_key().to_string(),
+                    Self::get_cookie_key(),
                     session.token,
                 ));
             }
@@ -91,6 +84,25 @@ impl Authenticator for DummyUser {
             Ok(Login::Success(user))
         } else {
             Ok(Login::Failure(user))
+        }
+    }
+
+    fn logout(request: &Request) -> Result<Logout<Self>, Self::Error> {
+        // Get the session cookie from the current request
+        let mut user = None;
+        if let Some(mut cookies) = request.guard::<Cookies>().succeeded() {
+            if let Some(_sid) = cookies.get_private(&Self::get_cookie_key()) {
+                // Retrieve session and associated user from Db
+                let db_retrieved_username = "Isaac".into();
+                user = Some(DummyUser { username: db_retrieved_username });
+                // when everything went well, we also need to delete the session from the cookie
+                cookies.remove_private(Cookie::named(Self::get_cookie_key()));
+            }
+        }
+
+        match user {
+            Some(user) => Ok(Logout::Success(user)),
+            None => Ok(Logout::Failure)
         }
     }
 }
@@ -105,7 +117,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for DummyUser {
     type Error = ();
 
     fn from_request(request: &'a Request<'r>) -> rocket::request::Outcome<DummyUser, Self::Error> {
-        match request.cookies().get_private(&Self::session_key()) {
+        match request.cookies().get_private(&Self::get_cookie_key()) {
             Some(_sid) => {
                 // Retrieve DB connection from request, check if sessionID is valid and get user data from DB
                 let db_retrieved_username = "Isaac".into();

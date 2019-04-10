@@ -1,4 +1,6 @@
+use std::fmt::Debug;
 use crate::login::Login;
+use crate::logout::Logout;
 use rocket::request::FormItems;
 use rocket::request::Request;
 
@@ -16,13 +18,19 @@ impl FromString for String {
 /// 
 /// [`Login`]: crate::login::Login
 pub trait Authenticator {
-    type Error;
+    type Error: Debug;
+
+    fn get_cookie_key() -> String;
 
     fn authenticate(
         request: &Request,
         items: &mut FormItems,
         strict: bool,
     ) -> Result<Login<Self>, Self::Error>
+    where
+        Self: std::marker::Sized;
+
+    fn logout(request: &Request) -> Result<Logout<Self>, Self::Error>
     where
         Self: std::marker::Sized;
 }

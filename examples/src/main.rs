@@ -7,7 +7,7 @@ extern crate rocket_auth as auth;
 
 mod dummy;
 
-use auth::Login;
+use auth::{Login, Logout};
 use dummy::DummyUser;
 use rocket::http::Cookies;
 use rocket::request::FlashMessage;
@@ -53,10 +53,8 @@ fn login(msg: Option<FlashMessage>) -> Html<String> {
 }
 
 #[get("/logout")]
-fn logout(info: DummyUser, mut cookies: Cookies) -> Redirect {
-    // Logout and delete cookie
-    info.logout(&mut cookies);
-    Redirect::to("/admin")
+fn logout(logout: Logout<DummyUser>) -> Redirect {
+    logout.redirect("/admin", "/admin")
 }
 
 #[post("/admin", data = "<login>")]
