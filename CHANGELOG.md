@@ -5,6 +5,10 @@ We have two kinds of updates. A major update occurs when y changes in x.y.z. A m
 
 Major updates can introduce code incompabilities with code that uses a previous version of this library. Minor updates are garantueed to only include bug fixes or upgrades of a few depedencies.
 
+## Version 0.4.1
+
+- Bump Rocket to 0.4.1
+
 ## Version 0.4
 
 - Upgrade to Rocket 0.4.

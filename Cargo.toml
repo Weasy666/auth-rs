@@ -1,6 +1,6 @@
 [package]
 name = "rocket_auth"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Bram Vandenbogaerde", "Daniel Wiesenberg <weasy@hotmail.de>"]
 include = [
     "**/*.rs",
@@ -13,5 +13,5 @@ repository="https://github.com/bramvdbogaerde/auth-rs"
 edition = "2018"
 
 [dependencies]
-rocket = "0.4.0"
+rocket = "0.4.1"
 log = "0.4"
