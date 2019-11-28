@@ -4,23 +4,17 @@ use crate::logout::Logout;
 use rocket::request::FormItems;
 use rocket::request::Request;
 
-pub trait FromString {
-    fn from_string(s: String) -> Self;
-}
-
-impl FromString for String {
-    fn from_string(s: String) -> String {
-        s
-    }
-}
-
 /// This trait needs to be implemented by the type which will be used in [`Login`]
 /// 
 /// [`Login`]: crate::login::Login
 pub trait Authenticator {
     type Error: Debug;
 
-    fn get_cookie_key() -> String;
+    /// Can be used as key to access this authenticators value in a cookie.
+    /// The provided default implementation returns `sid` as key.
+    fn get_cookie_key() -> String {
+        "sid".to_string()
+    }
 
     fn authenticate(
         request: &Request,

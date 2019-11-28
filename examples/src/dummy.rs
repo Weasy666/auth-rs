@@ -37,10 +37,6 @@ pub struct DummyUser {
 impl Authenticator for DummyUser {
     type Error = String;
 
-    fn get_cookie_key() -> String {
-        "sid".into()
-    }
-
     fn authenticate(
         request: &Request,
         items: &mut FormItems,
