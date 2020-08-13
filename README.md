@@ -1,3 +1,6 @@
+# ❗ This crate is deprecated ❗  
+> It won't be updated for Rocket 0.5 and it's async runtime. Instead take a look at [rocket-airlock](https://github.com/Weasy666/rocket_airlock)
+
 # rocket_auth
 This library provides a easy authentication system to use with [Rocket][], its purpose is to get integrated to [Rocket Contrib][Rocket] as the canonical way to do authentication. The current implementation is what I was able to come up with after taking some inspiration of Bram Vandenbogaerde's [rocket-simpleauth](https://github.com/bramvdbogaerde/auth-rs) crate and also leveraging it as a starting point, but it is nearly a complete rewrite (which should allow a license change to a more open one).  
 
